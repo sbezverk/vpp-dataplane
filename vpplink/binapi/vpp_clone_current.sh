@@ -15,5 +15,5 @@ git fetch "https://gerrit.fd.io/r/vpp" refs/changes/11/28711/3 && git cherry-pic
 git fetch "https://gerrit.fd.io/r/vpp" refs/changes/87/28587/18 && git cherry-pick FETCH_HEAD # calico plugin
 # Policies
 git fetch "https://gerrit.fd.io/r/vpp" refs/changes/83/28083/9 && git cherry-pick FETCH_HEAD # ACL custom policies
-git fetch "https://gerrit.fd.io/r/vpp" refs/changes/13/28513/7 && git cherry-pick FETCH_HEAD # Calico policies
-
+git fetch "https://gerrit.fd.io/r/vpp" refs/changes/13/28513/8 && git cherry-pick FETCH_HEAD # Calico policies
+git fetch "https://gerrit.fd.io/r/vpp" refs/changes/15/29215/2 && git cherry-pick FETCH_HEAD # Calico matching

@@ -32,7 +32,7 @@ type SyncState int
 
 const (
 	StateDisconnected SyncState = iota
-	StateConnected    SyncState = iota
+	StateConnected
 	StateSyncing
 	StateInSync
 )
@@ -287,7 +287,7 @@ func (s *Server) handleIpsetRemove(msg *proto.IPSetRemove, pending bool) (err er
 	_, ok := state.IPSets[msg.GetId()]
 	if !ok {
 		s.log.Debugf("Received ipset delete for ID %s that doesn't exists", msg.GetId())
-		return
+		return nil
 	}
 	if !pending {
 		err = state.IPSets[msg.GetId()].Delete(s.vpp)
@@ -300,38 +300,62 @@ func (s *Server) handleIpsetRemove(msg *proto.IPSetRemove, pending bool) (err er
 }
 
 func (s *Server) handleActivePolicyUpdate(msg *proto.ActivePolicyUpdate, pending bool) (err error) {
-	if pending {
+	state := s.currentState(pending)
+	id := PolicyID{
+		Tier: msg.Id.Tier,
+		Name: msg.Id.Name,
+	}
+	p, err := fromProtoPolicy(msg.Policy)
+	if err != nil {
+		return errors.Wrapf(err, "cannot process policy update")
+	}
 
+	existing, ok := state.Policies[id]
+	if ok { // Policy with this ID already exists
+		if pending {
+			// Just replace policy in pending state
+			state.Policies[id] = p
+		} else {
+			return errors.Wrap(existing.Update(s.vpp, p, state), "cannot update policy")
+		}
 	} else {
-
+		// Create it in state
+		state.Policies[id] = p
+		if !pending {
+			return errors.Wrap(p.Create(s.vpp, state), "cannot create policy")
+		}
 	}
 	return nil
 }
 
 func (s *Server) handleActivePolicyRemove(msg *proto.ActivePolicyRemove, pending bool) (err error) {
-	if pending {
-
-	} else {
-
+	state := s.currentState(pending)
+	id := PolicyID{
+		Tier: msg.Id.Tier,
+		Name: msg.Id.Name,
 	}
+	existing, ok := state.Policies[id]
+	if !ok {
+		s.log.Debugf("Received policy delete for Tier %s Name %s that doesn't exists", id.Tier, id.Name)
+		return nil
+	}
+	if !pending {
+		err = existing.Delete(s.vpp, state)
+		if err != nil {
+			return errors.Wrap(err, "error deleting policy")
+		}
+	}
+	delete(state.Policies, id)
 	return nil
 }
 
 func (s *Server) handleActiveProfileUpdate(msg *proto.ActiveProfileUpdate, pending bool) (err error) {
-	if pending {
-
-	} else {
-
-	}
+	s.log.Infof("Ignoring ActiveProfileUpdate")
 	return nil
 }
 
 func (s *Server) handleActiveProfileRemove(msg *proto.ActiveProfileRemove, pending bool) (err error) {
-	if pending {
-
-	} else {
-
-	}
+	s.log.Infof("Ignoring ActiveProfileRemove")
 	return nil
 }
 
