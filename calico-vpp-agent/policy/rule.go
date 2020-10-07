@@ -18,6 +18,7 @@ package policy
 import (
 	"fmt"
 	"net"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/projectcalico/vpp-dataplane/calico-vpp-agent/policy/proto"
@@ -44,23 +45,26 @@ type Rule struct {
 
 func fromProtoRule(r *proto.Rule) (rule *Rule, err error) {
 	rule = &Rule{
+		Rule:   &types.Rule{},
 		RuleID: r.RuleId,
 		VppID:  types.InvalidID,
 	}
-	switch r.Action {
-	case "Allow":
+	switch strings.ToLower(r.Action) {
+	case "allow":
 		rule.Action = types.ActionAllow
-	case "Deny":
+	case "deny":
 		rule.Action = types.ActionDeny
-	case "Log":
+	case "log":
 		rule.Action = types.ActionLog
-	case "Pass":
+	case "pass":
 		rule.Action = types.ActionPass
 	default:
 		return nil, fmt.Errorf("Unknown rule action: %s", r.Action)
 	}
 
 	switch r.IpVersion {
+	case proto.IPVersion_ANY:
+		rule.AddressFamily = types.FAMILY_ALL
 	case proto.IPVersion_IPV4:
 		rule.AddressFamily = types.FAMILY_V4
 	case proto.IPVersion_IPV6:
@@ -80,7 +84,7 @@ func fromProtoRule(r *proto.Rule) (rule *Rule, err error) {
 		rule.Filters = append(rule.Filters, types.RuleFilter{
 			ShouldMatch: true,
 			Type:        types.CapoFilterProto,
-			Value:       proto,
+			Value:       int(proto),
 		})
 	}
 	if r.NotProtocol != nil {
@@ -91,7 +95,7 @@ func fromProtoRule(r *proto.Rule) (rule *Rule, err error) {
 		rule.Filters = append(rule.Filters, types.RuleFilter{
 			ShouldMatch: false,
 			Type:        types.CapoFilterProto,
-			Value:       proto,
+			Value:       int(proto),
 		})
 	}
 
@@ -164,12 +168,27 @@ func fromProtoRule(r *proto.Rule) (rule *Rule, err error) {
 	return rule, nil
 }
 
-func parseProtocol(pr *proto.Protocol) (int, error) {
+func parseProtocol(pr *proto.Protocol) (types.IPProto, error) {
 	switch u := pr.NumberOrName.(type) {
 	case *proto.Protocol_Name:
-		return 0, fmt.Errorf("named protocols not supported")
+		switch strings.ToLower(u.Name) {
+		case "tcp":
+			return types.TCP, nil
+		case "udp":
+			return types.UDP, nil
+		case "icmp":
+			return types.ICMP, nil
+		case "icmp6":
+			return types.ICMP6, nil
+		case "sctp":
+			return types.SCTP, nil
+		case "udplite":
+			return 136, nil // TODO fix?
+		default:
+			return 0, fmt.Errorf("unknown protocol: %s", u.Name)
+		}
 	case *proto.Protocol_Number:
-		return int(u.Number), nil
+		return types.IPProto(u.Number), nil
 	default:
 		return 0, fmt.Errorf("cannot parse protocol")
 	}

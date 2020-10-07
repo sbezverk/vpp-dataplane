@@ -49,8 +49,8 @@ type Server struct {
 	state         SyncState
 	nextSeqNumber uint64
 
-	configuredState PolicyState
-	pendingState    PolicyState
+	configuredState *PolicyState
+	pendingState    *PolicyState
 }
 
 // NewServer creates a policy server
@@ -66,7 +66,6 @@ func NewServer(vpp *vpplink.VppLink, log *logrus.Entry) (*Server, error) {
 		nextSeqNumber: 0,
 
 		configuredState: NewPolicyState(),
-		pendingState:    NewPolicyState(),
 	}
 
 	// Cleanup potentially left over socket
@@ -105,13 +104,14 @@ func (s *Server) Serve() {
 			return
 		}
 		s.state = StateConnected
+		s.pendingState = NewPolicyState()
 
 		go s.SyncPolicy(conn)
 
 		select {
 		case <-s.vppRestarted:
 			// Close connection to restart felix, wipe all data and start over
-			// TODO: remove saved state
+			s.configuredState = NewPolicyState()
 			err = conn.Close()
 			if err != nil {
 				s.log.WithError(err).Warn("Error closing unix connection to felix API proxy")
@@ -224,9 +224,9 @@ func (s *Server) SyncPolicy(conn net.Conn) {
 
 func (s *Server) currentState(pending bool) *PolicyState {
 	if pending {
-		return &s.pendingState
+		return s.pendingState
 	}
-	return &s.configuredState
+	return s.configuredState
 }
 
 func (s *Server) handleConfigUpdate(msg *proto.ConfigUpdate) (err error) {
@@ -243,6 +243,7 @@ func (s *Server) handleInSync(msg *proto.InSync) (err error) {
 		return fmt.Errorf("Received InSync but state was not syncing")
 	}
 	s.state = StateInSync
+	s.log.Infof("Policies now in sync")
 	return s.applyPendingState()
 }
 
@@ -429,5 +430,47 @@ func (s *Server) handleNamespaceRemove(msg *proto.NamespaceRemove, pending bool)
 
 // Reconciles the pending state with the configured state
 func (s *Server) applyPendingState() (err error) {
+	s.log.Infof("Reconciliating pending policy state with configured state")
+	// Stupid algorithm for now, delete all that is in configured state, and then recreate everything
+	for _, policy := range s.configuredState.Policies {
+		err = policy.Delete(s.vpp, s.configuredState)
+		if err != nil {
+			s.log.Warnf("error deleting policy: %v", err)
+		}
+	}
+	for _, profile := range s.configuredState.Profiles {
+		err = profile.Delete(s.vpp, s.configuredState)
+		if err != nil {
+			s.log.Warnf("error deleting profile: %v", err)
+		}
+	}
+	for _, ipset := range s.configuredState.IPSets {
+		err = ipset.Delete(s.vpp)
+		if err != nil {
+			s.log.Warnf("error deleting ipset: %v", err)
+		}
+	}
+
+	s.configuredState = s.pendingState
+	s.pendingState = NewPolicyState()
+	for _, ipset := range s.configuredState.IPSets {
+		err = ipset.Create(s.vpp)
+		if err != nil {
+			s.log.Warnf("error creating ipset: %v", err)
+		}
+	}
+	for _, profile := range s.configuredState.Profiles {
+		err = profile.Create(s.vpp, s.configuredState)
+		if err != nil {
+			s.log.Warnf("error creating profile: %v", err)
+		}
+	}
+	for _, policy := range s.configuredState.Policies {
+		err = policy.Create(s.vpp, s.configuredState)
+		if err != nil {
+			s.log.Warnf("error creating policy: %v", err)
+		}
+	}
+
 	return nil
 }

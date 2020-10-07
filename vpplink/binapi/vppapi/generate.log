@@ -1,11 +1,10 @@
-VPP Version                 : 21.01-rc0~150-gc795c7403
+VPP Version                 : 21.01-rc0~163-g3480602ea
 Binapi-generator version    : govpp v0.4.0-dev
-VPP Base commit             : f30e07e3b build: fix build for debian testing
+VPP Base commit             : d20bc1d30 vppinfra: address sanitizer: do not instrument dlmalloc internals
 ------------------ Cherry picked commits --------------------
-c795c7403 capo: WIP: policies matching
-86ce250f1 WIP: capo: Calico Policies plugin
-8bab65b35 WIP: acl-plugin custom policies
-8777ad437 calico: Add SNAT simultaneously to VIP DNAT
-132ff4547 vlib: force input node interrupts to be unique
-a7cc99ded ip: Fix unformat_ip_prefix
+3480602ea capo: WIP: policies matching
+53c76c72a WIP: capo: Calico Policies plugin
+86bfcc3c2 WIP: acl-plugin custom policies
+2e8f63c4c calico: Add SNAT simultaneously to VIP DNAT
+fe115909c vlib: force input node interrupts to be unique
 -------------------------------------------------------------

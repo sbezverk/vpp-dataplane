@@ -39,13 +39,14 @@ type Policy struct {
 
 func fromProtoPolicy(p *proto.Policy) (policy *Policy, err error) {
 	policy = &Policy{
-		VppID: types.InvalidID,
+		Policy: &types.Policy{},
+		VppID:  types.InvalidID,
 	}
 	if p.Untracked {
 		return nil, fmt.Errorf("Untracked policies not supported")
 	}
-	if !p.PreDnat {
-		return nil, fmt.Errorf("post dnat policies not supported")
+	if !p.PreDnat && len(p.OutboundRules) > 0 {
+		return nil, fmt.Errorf("post dnat outbound policies not supported")
 	}
 	for _, r := range p.InboundRules {
 		rule, err := fromProtoRule(r)
