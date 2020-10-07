@@ -24,6 +24,7 @@ import (
 	pb "github.com/projectcalico/vpp-dataplane/calico-vpp-agent/cni/proto"
 	"github.com/projectcalico/vpp-dataplane/calico-vpp-agent/common"
 	"github.com/projectcalico/vpp-dataplane/calico-vpp-agent/config"
+	"github.com/projectcalico/vpp-dataplane/calico-vpp-agent/policy"
 	"github.com/projectcalico/vpp-dataplane/calico-vpp-agent/routing"
 	"github.com/projectcalico/vpp-dataplane/calico-vpp-agent/services"
 	"github.com/projectcalico/vpp-dataplane/vpplink"
@@ -42,6 +43,7 @@ type Server struct {
 	socketListener  net.Listener
 	routingServer   *routing.Server
 	servicesServer  *services.Server
+	policyServer    *policy.Server
 	podInterfaceMap map[string]*LocalPodSpec
 }
 
@@ -132,6 +134,18 @@ func (s *Server) Del(ctx context.Context, request *pb.DelRequest) (*pb.DelReply,
 			ErrorMessage: err.Error(),
 		}, nil
 	}
+
+	initialSpec, ok := s.podInterfaceMap[podSpec.Key()]
+	if !ok {
+		s.log.Warnf("Deleting interface but initial spec not found")
+	} else {
+		s.policyServer.WorkloadRemoved(&policy.WorkloadEndpointID{
+			OrchestratorID: initialSpec.OrchestratorID,
+			WorkloadID:     initialSpec.WorkloadID,
+			EndpointID:     initialSpec.EndpointID,
+		})
+	}
+
 	delete(s.podInterfaceMap, podSpec.Key())
 	s.log.Infof("Interface del successful %s", podSpec.Key())
 	return &pb.DelReply{
@@ -145,7 +159,7 @@ func (s *Server) Stop() {
 }
 
 // Serve runs the grpc server for the Calico CNI backend API
-func NewServer(v *vpplink.VppLink, rs *routing.Server, ss *services.Server, l *logrus.Entry) (*Server, error) {
+func NewServer(v *vpplink.VppLink, rs *routing.Server, ss *services.Server, ps *policy.Server, l *logrus.Entry) (*Server, error) {
 	clusterConfig, err := rest.InClusterConfig()
 	if err != nil {
 		panic(err.Error())
@@ -164,6 +178,7 @@ func NewServer(v *vpplink.VppLink, rs *routing.Server, ss *services.Server, l *l
 		log:             l,
 		routingServer:   rs,
 		servicesServer:  ss,
+		policyServer:    ps,
 		socketListener:  lis,
 		client:          client,
 		grpcServer:      grpc.NewServer(),

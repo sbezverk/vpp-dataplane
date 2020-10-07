@@ -88,6 +88,10 @@ type LocalPodSpec struct {
 	Routes            []LocalIPNet
 	ContainerIpsSize  int `struc:"int16,sizeof=ContainerIps"`
 	ContainerIps      []LocalIP
+	// Pod identifiers
+	OrchestratorID string
+	WorkloadID     string
+	EndpointID     string
 }
 
 func (ps *LocalPodSpec) GetRoutes() (routes []*net.IPNet) {
@@ -140,6 +144,10 @@ func NewLocalPodSpecFromAdd(request *pb.AddRequest) (*LocalPodSpec, error) {
 		AllowIpForwarding: request.GetSettings().GetAllowIpForwarding(),
 		Routes:            make([]LocalIPNet, 0),
 		ContainerIps:      make([]LocalIP, 0),
+
+		OrchestratorID: request.Workload.Orchestrator,
+		WorkloadID:     request.Workload.Name,
+		EndpointID:     request.Workload.Endpoint,
 	}
 	for _, routeStr := range request.GetContainerRoutes() {
 		_, route, err := net.ParseCIDR(routeStr)
