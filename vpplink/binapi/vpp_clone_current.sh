@@ -10,9 +10,9 @@ else
 	git fetch "https://gerrit.fd.io/r/vpp" && git reset --hard ${VPP_COMMIT}
 fi
 
-git fetch "https://gerrit.fd.io/r/vpp" refs/changes/11/28711/3 && git cherry-pick FETCH_HEAD # vlib: force input node interrupts to be unique
-git fetch "https://gerrit.fd.io/r/vpp" refs/changes/87/28587/19 && git cherry-pick FETCH_HEAD # calico plugin
+git fetch "https://gerrit.fd.io/r/vpp" refs/changes/11/28711/4 && git cherry-pick FETCH_HEAD # vlib: force input node interrupts to be unique
+git fetch "https://gerrit.fd.io/r/vpp" refs/changes/87/28587/20 && git cherry-pick FETCH_HEAD # calico plugin
 # Policies
-git fetch "https://gerrit.fd.io/r/vpp" refs/changes/83/28083/9 && git cherry-pick FETCH_HEAD # ACL custom policies
-git fetch "https://gerrit.fd.io/r/vpp" refs/changes/13/28513/8 && git cherry-pick FETCH_HEAD # Calico policies
-git fetch "https://gerrit.fd.io/r/vpp" refs/changes/15/29215/2 && git cherry-pick FETCH_HEAD # Calico matching
+git fetch "https://gerrit.fd.io/r/vpp" refs/changes/83/28083/10 && git cherry-pick FETCH_HEAD # ACL custom policies
+git fetch "https://gerrit.fd.io/r/vpp" refs/changes/13/28513/9 && git cherry-pick FETCH_HEAD # Calico policies
+git fetch "https://gerrit.fd.io/r/vpp" refs/changes/15/29215/4 && git cherry-pick FETCH_HEAD # Calico matching
