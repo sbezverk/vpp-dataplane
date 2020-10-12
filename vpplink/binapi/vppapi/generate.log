@@ -1,8 +1,8 @@
-VPP Version                 : 21.01-rc0~163-g3480602ea
+VPP Version                 : 21.01-rc0~163-g43b63154c
 Binapi-generator version    : govpp v0.4.0-dev
 VPP Base commit             : d20bc1d30 vppinfra: address sanitizer: do not instrument dlmalloc internals
 ------------------ Cherry picked commits --------------------
-3480602ea capo: WIP: policies matching
+43b63154c capo: WIP: policies matching
 53c76c72a WIP: capo: Calico Policies plugin
 86bfcc3c2 WIP: acl-plugin custom policies
 2e8f63c4c calico: Add SNAT simultaneously to VIP DNAT
